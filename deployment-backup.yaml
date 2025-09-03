@@ -1,0 +1,180 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "4"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"whisperlive-gpu-3"},"name":"whisperlive-gpu-3","namespace":"be-brave-ag"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"whisperlive-gpu-3"}},"strategy":{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":"25%"},"type":"RollingUpdate"},"template":{"metadata":{"labels":{"app":"whisperlive-gpu-3","deployment":"whisperlive-gpu-3"}},"spec":{"containers":[{"command":["python3","run_server.py","--port","9090","--backend","faster_whisper","--max_clients","4","--faster_whisper_custom_model_path","/models/faster-whisper-medium"],"env":[{"name":"CUDA_VISIBLE_DEVICES","value":"0"},{"name":"TRANSFORMERS_CACHE","value":"/tmp/transformers_cache"},{"name":"HF_HOME","value":"/tmp/hf_home"},{"name":"CUDA_LAUNCH_BLOCKING","value":"0"},{"name":"CUDA_DEVICE_ORDER","value":"PCI_BUS_ID"},{"name":"PYTORCH_CUDA_ALLOC_CONF","value":"max_split_size_mb:512"}],"image":"ghcr.io/collabora/whisperlive-gpu:latest","imagePullPolicy":"Always","name":"whisperlive-gpu-3","ports":[{"containerPort":9090,"protocol":"TCP"}],"resources":{"limits":{"cpu":"12","memory":"48Gi","nvidia.com/gpu":"1"},"requests":{"cpu":"6","memory":"16Gi","nvidia.com/gpu":"1"}},"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","volumeMounts":[{"mountPath":"/models","name":"model-volume"}]}],"initContainers":[{"args":["set -ex\necho \"Starting OPTIMIZED model download for H100...\"\n\n# Install dependencies\npip install --user --no-cache-dir --timeout=120 huggingface_hub\n\n# Create directory\nmkdir -p /models/faster-whisper-medium\n\n# Download MEDIUM model for much better performance than small\npython -c \"\nimport sys\nfrom huggingface_hub import snapshot_download\n\ntry:\n    print('Downloading Systran/faster-whisper-medium for optimal H100 performance...')\n    snapshot_download(\n        repo_id='Systran/faster-whisper-medium',\n        local_dir='/models/faster-whisper-medium',\n        local_dir_use_symlinks=False,\n        resume_download=True\n    )\n    print('MEDIUM model download completed successfully')\nexcept Exception as e:\n    print(f'Download failed: {e}')\n    sys.exit(1)\n\"\n\n# Verify download\nif [ ! -f /models/faster-whisper-medium/config.json ]; then\n  echo \"Model files not found after download\"\n  exit 1\nfi\n\necho \"OPTIMIZED MEDIUM model downloaded and verified:\"\nls -la /models/faster-whisper-medium/\n"],"command":["/bin/bash","-c"],"env":[{"name":"HOME","value":"/tmp"},{"name":"PYTHONUSERBASE","value":"/tmp/.local"}],"image":"python:3.11-slim","name":"download-faster-whisper-medium","resources":{"limits":{"cpu":"6","memory":"12Gi"},"requests":{"cpu":"2","memory":"4Gi"}},"securityContext":{"runAsUser":1001030000},"volumeMounts":[{"mountPath":"/models","name":"model-volume"}]}],"nodeSelector":{"nvidia.com/gpu.present":"true"},"restartPolicy":"Always","terminationGracePeriodSeconds":30,"tolerations":[{"effect":"NoSchedule","key":"nvidia.com/gpu","operator":"Exists"},{"effect":"NoSchedule","key":"nvidia-gpu","operator":"Exists"}],"volumes":[{"emptyDir":{"sizeLimit":"20Gi"},"name":"model-volume"}]}}}}
+  creationTimestamp: "2025-09-03T01:52:22Z"
+  generation: 4
+  labels:
+    app: whisperlive-gpu-3
+  name: whisperlive-gpu-3
+  namespace: be-brave-ag
+  resourceVersion: "510869725"
+  uid: 0263bae7-2159-4034-a937-cdb9062f07e9
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: whisperlive-gpu-3
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: whisperlive-gpu-3
+        deployment: whisperlive-gpu-3
+    spec:
+      containers:
+      - command:
+        - python3
+        - run_server.py
+        - --port
+        - "9090"
+        - --backend
+        - faster_whisper
+        - --max_clients
+        - "4"
+        - --faster_whisper_custom_model_path
+        - /models/faster-whisper-medium
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: TRANSFORMERS_CACHE
+          value: /tmp/transformers_cache
+        - name: HF_HOME
+          value: /tmp/hf_home
+        - name: CUDA_LAUNCH_BLOCKING
+          value: "0"
+        - name: CUDA_DEVICE_ORDER
+          value: PCI_BUS_ID
+        - name: PYTORCH_CUDA_ALLOC_CONF
+          value: max_split_size_mb:512
+        image: ghcr.io/collabora/whisperlive-gpu:latest
+        imagePullPolicy: Always
+        name: whisperlive-gpu-3
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "12"
+            memory: 48Gi
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: "6"
+            memory: 16Gi
+            nvidia.com/gpu: "1"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /models
+          name: model-volume
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - args:
+        - |
+          set -ex
+          echo "Starting OPTIMIZED model download for H100..."
+
+          # Install dependencies
+          pip install --user --no-cache-dir --timeout=120 huggingface_hub
+
+          # Create directory
+          mkdir -p /models/faster-whisper-medium
+
+          # Download MEDIUM model for much better performance than small
+          python -c "
+          import sys
+          from huggingface_hub import snapshot_download
+
+          try:
+              print('Downloading Systran/faster-whisper-medium for optimal H100 performance...')
+              snapshot_download(
+                  repo_id='Systran/faster-whisper-medium',
+                  local_dir='/models/faster-whisper-medium',
+                  local_dir_use_symlinks=False,
+                  resume_download=True
+              )
+              print('MEDIUM model download completed successfully')
+          except Exception as e:
+              print(f'Download failed: {e}')
+              sys.exit(1)
+          "
+
+          # Verify download
+          if [ ! -f /models/faster-whisper-medium/config.json ]; then
+            echo "Model files not found after download"
+            exit 1
+          fi
+
+          echo "OPTIMIZED MEDIUM model downloaded and verified:"
+          ls -la /models/faster-whisper-medium/
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: HOME
+          value: /tmp
+        - name: PYTHONUSERBASE
+          value: /tmp/.local
+        image: python:3.11-slim
+        imagePullPolicy: IfNotPresent
+        name: download-faster-whisper-medium
+        resources:
+          limits:
+            cpu: "6"
+            memory: 12Gi
+          requests:
+            cpu: "2"
+            memory: 4Gi
+        securityContext:
+          runAsUser: 1001030000
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /models
+          name: model-volume
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      - effect: NoSchedule
+        key: nvidia-gpu
+        operator: Exists
+      volumes:
+      - emptyDir:
+          sizeLimit: 20Gi
+        name: model-volume
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2025-09-03T01:55:26Z"
+    lastUpdateTime: "2025-09-03T01:55:26Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2025-09-03T01:52:22Z"
+    lastUpdateTime: "2025-09-03T02:24:27Z"
+    message: ReplicaSet "whisperlive-gpu-3-756689c8d9" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 4
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1
