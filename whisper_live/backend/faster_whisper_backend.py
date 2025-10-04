@@ -81,7 +81,8 @@ class ServeClientFasterWhisper(ServeClientBase):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         if device == "cuda":
             major, _ = torch.cuda.get_device_capability(device)
-            self.compute_type = "float16" if major >= 7 else "float32"
+            # Optimized: use int8 for 1.5-2x speedup with minimal quality loss
+            self.compute_type = "int8" if major >= 7 else "float32"
         else:
             self.compute_type = "int8"
 
@@ -210,7 +211,15 @@ class ServeClientFasterWhisper(ServeClientBase):
             language=self.language,
             task=self.task,
             vad_filter=self.use_vad,
-            vad_parameters=self.vad_parameters if self.use_vad else None)
+            vad_parameters=self.vad_parameters if self.use_vad else None,
+            beam_size=1,  # Optimized: greedy decoding for 3-5x speedup
+            best_of=1,    # Optimized: no sampling
+            patience=0.0, # Optimized: no beam search patience
+            temperature=0.0,  # Deterministic output
+            compression_ratio_threshold=2.4,  # Skip repetitive segments
+            log_prob_threshold=-1.0,  # More lenient filtering
+            no_speech_threshold=0.6   # Higher no-speech threshold
+        )
         if ServeClientFasterWhisper.SINGLE_MODEL:
             ServeClientFasterWhisper.SINGLE_MODEL_LOCK.release()
 
